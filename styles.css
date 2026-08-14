@@ -1,5 +1,5 @@
 body { margin: 0; font-family: Arial, sans-serif; background: #f6f3ed; color: #292722; }
-.toolbar { padding: 16px 20px; background: white; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.toolbar { padding: 16px 20px; background: white; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; position: sticky; top: 0; z-index: 20; }
 .toolbar h1 { margin: 0; }
 .toolbar p { margin: 4px 0 0; color: #666; }
 .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -9,10 +9,23 @@ body { margin: 0; font-family: Arial, sans-serif; background: #f6f3ed; color: #2
 .node { display: flex; align-items: center; }
 .person { display: flex; align-items: center; }
 .card { width: 180px; padding: 12px 14px; text-align: left; background: white; border: 1px solid #ccc; border-radius: 12px; }
+.editable-card { cursor: pointer; }
+.editable-card:hover { border-color: #6d5bd0; box-shadow: 0 0 0 2px rgba(109,91,208,.12); }
 .name { font-weight: 700; }
+.relation, .spouse { margin-top: 4px; color: #6b665e; font-size: 13px; }
 .toggle { margin-left: 8px; width: 28px; height: 28px; border-radius: 50%; border: 1px solid #ccc; background: white; }
 .children { display: flex; flex-direction: column; gap: 20px; margin-left: 56px; }
 .child { position: relative; }
 .child::before { content: ""; position: absolute; left: -28px; top: 50%; width: 28px; border-top: 1px solid #aaa; }
-.details { position: fixed; right: 18px; bottom: 18px; width: 320px; max-width: calc(100vw - 36px); background: white; border: 1px solid #ccc; border-radius: 12px; padding: 18px; }
-.close { position: absolute; right: 8px; top: 8px; border: 0; background: transparent; font-size: 20px; }
+.editor-panel { position: fixed; right: 18px; bottom: 18px; z-index: 30; width: 340px; max-width: calc(100vw - 36px); background: white; border: 1px solid #cfcfcf; border-radius: 14px; padding: 16px; box-shadow: 0 12px 40px rgba(0,0,0,.16); }
+.editor-panel[hidden] { display: none; }
+.editor-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.editor-head button { border: 0; background: transparent; font-size: 24px; cursor: pointer; }
+.editor-panel label { display: block; margin: 10px 0; font-size: 13px; color: #5d5952; }
+.editor-panel input { display: block; width: 100%; margin-top: 5px; padding: 9px 10px; border: 1px solid #ccc; border-radius: 8px; font: inherit; box-sizing: border-box; }
+.editor-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+.editor-actions button { padding: 8px 10px; border: 1px solid #ccc; border-radius: 8px; background: white; cursor: pointer; }
+.editor-actions .danger { color: #a12626; }
+.editor-status { margin-top: 10px; color: #777; font-size: 12px; }
+.edit-mode #editMode { background: #292722; color: white; border-color: #292722; }
+@media (max-width: 700px) { .viewport { padding: 24px; } .toolbar { position: static; } .editor-panel { left: 12px; right: 12px; bottom: 12px; width: auto; max-width: none; } }
