@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Family Tree</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="toolbar">
+    <div>
+      <h1>Family Tree</h1>
+      <p>Horizontal, searchable, expandable</p>
+    </div>
+    <div class="controls">
+      <input id="search" type="search" placeholder="Search person…" />
+      <button id="expand">Expand all</button>
+      <button id="collapse">Collapse all</button>
+      <button id="zoomOut">−</button>
+      <span id="zoomLabel">100%</span>
+      <button id="zoomIn">+</button>
+      <button id="reset">Reset</button>
+    </div>
+  </header>
+
+  <main id="viewport" class="viewport">
+    <div id="stage" class="stage">
+      <div id="tree"></div>
+    </div>
+  </main>
+
+  <aside id="details" class="details" hidden></aside>
+
+  <script src="family-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
