@@ -130,6 +130,60 @@ function ensureEditor() {
   document.getElementById('editorClose').addEventListener('click', () => panel.hidden = true);
 }
 
+function ensureBackupPanel() {
+  let panel = document.getElementById('backupPanel');
+  if (panel) return panel;
+  panel = document.createElement('aside');
+  panel.id = 'backupPanel';
+  panel.className = 'editor-panel';
+  panel.hidden = true;
+
+  const head = document.createElement('div');
+  head.className = 'editor-head';
+  const title = document.createElement('strong');
+  title.textContent = 'Local backup JSON';
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.textContent = '×';
+  close.addEventListener('click', () => panel.hidden = true);
+  head.appendChild(title);
+  head.appendChild(close);
+
+  const note = document.createElement('p');
+  note.textContent = 'This is the exact tree currently saved in this browser. Long-press inside the box, Select All, then Copy.';
+
+  const area = document.createElement('textarea');
+  area.id = 'backupText';
+  area.setAttribute('rows', '18');
+  area.setAttribute('readonly', '');
+
+  const select = document.createElement('button');
+  select.type = 'button';
+  select.textContent = 'Select all JSON';
+  select.addEventListener('click', () => {
+    area.focus();
+    area.select();
+    area.setSelectionRange(0, area.value.length);
+  });
+
+  panel.appendChild(head);
+  panel.appendChild(note);
+  panel.appendChild(area);
+  panel.appendChild(select);
+  document.body.appendChild(panel);
+  return panel;
+}
+
+function showBackupJson() {
+  const panel = ensureBackupPanel();
+  const saved = localStorage.getItem(STORAGE_KEY);
+  const value = saved || JSON.stringify(root);
+  let pretty = value;
+  try { pretty = JSON.stringify(JSON.parse(value), null, 2); } catch (error) {}
+  document.getElementById('backupText').value = pretty;
+  panel.hidden = false;
+}
+
 let editingId = null;
 function openEditor(id) {
   ensureEditor();
@@ -206,6 +260,7 @@ document.getElementById('editorAdd').addEventListener('click', addChild);
 document.getElementById('editorDelete').addEventListener('click', deleteNode);
 document.getElementById('editMode').addEventListener('click', () => { editMode = !editMode; render(); if (!editMode) document.getElementById('editorPanel').hidden = true; });
 document.getElementById('exportData').addEventListener('click', exportJson);
+document.getElementById('showBackup').addEventListener('click', showBackupJson);
 document.getElementById('resetEdits').addEventListener('click', resetEdits);
 document.getElementById('expand').addEventListener('click', () => { collapsed.clear(); render(); });
 document.getElementById('collapse').addEventListener('click', () => {
