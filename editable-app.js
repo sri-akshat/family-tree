@@ -1,5 +1,8 @@
 const STORAGE_KEY = 'family-tree-draft-v1';
 const BASE_TREE = window.VERIFIED_TREE;
+const API_BASE = window.FAMILY_TREE_API_BASE || (location.hostname.endsWith('.vercel.app') ? location.origin : '');
+let editPin = sessionStorage.getItem('family-tree-edit-pin') || '';
+let sharedReady = false;
 let root = loadTree();
 let editMode = false;
 let zoom = 0.9;
@@ -23,7 +26,69 @@ function loadTree() {
 function persist() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(root));
   const status = document.getElementById('editStatus');
-  if (status) status.textContent = 'Saved locally';
+  if (status) status.textContent = sharedReady ? 'Saved locally · syncing…' : 'Saved locally';
+  if (sharedReady && editPin) syncShared().catch(() => {
+    if (status) status.textContent = 'Saved locally · shared sync failed';
+  });
+}
+
+async function fetchShared() {
+  if (!API_BASE) return false;
+  const response = await fetch(API_BASE + '/api/tree', { cache: 'no-store' });
+  if (response.status === 404) return false;
+  if (!response.ok) throw new Error('Shared tree load failed');
+  const data = await response.json();
+  if (!data.tree) return false;
+  root = data.tree;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(root));
+  sharedReady = true;
+  render();
+  return true;
+}
+
+async function syncShared() {
+  if (!API_BASE || !editPin) return false;
+  const response = await fetch(API_BASE + '/api/tree', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + editPin },
+    body: JSON.stringify({ tree: root })
+  });
+  if (response.status === 401) {
+    editPin = '';
+    sessionStorage.removeItem('family-tree-edit-pin');
+    sharedReady = false;
+    throw new Error('Invalid edit PIN');
+  }
+  if (!response.ok) throw new Error('Shared save failed');
+  sharedReady = true;
+  const status = document.getElementById('editStatus');
+  if (status) status.textContent = 'Saved to shared tree';
+  return true;
+}
+
+async function connectShared() {
+  if (!API_BASE) {
+    alert('Shared API is not configured on this host yet. Deploy this repo to Vercel first.');
+    return;
+  }
+  const pin = prompt('Enter family edit PIN');
+  if (!pin) return;
+  editPin = pin;
+  sessionStorage.setItem('family-tree-edit-pin', pin);
+
+  try {
+    const exists = await fetchShared();
+    if (!exists) {
+      if (!confirm('No shared tree exists yet. Upload THIS browser\'s current tree as the shared starting version?')) return;
+      root = loadTree();
+      await syncShared();
+    }
+    sharedReady = true;
+    render();
+    alert('Connected to shared family tree.');
+  } catch (error) {
+    alert(error.message || 'Could not connect to shared tree');
+  }
 }
 
 function findNode(id, item = root, parent = null) {
@@ -130,9 +195,65 @@ function ensureEditor() {
   document.getElementById('editorClose').addEventListener('click', () => panel.hidden = true);
 }
 
+function ensureBackupPanel() {
+  let panel = document.getElementById('backupPanel');
+  if (panel) return panel;
+  panel = document.createElement('aside');
+  panel.id = 'backupPanel';
+  panel.className = 'editor-panel';
+  panel.hidden = true;
+
+  const head = document.createElement('div');
+  head.className = 'editor-head';
+  const title = document.createElement('strong');
+  title.textContent = 'Local backup JSON';
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.textContent = '×';
+  close.addEventListener('click', () => panel.hidden = true);
+  head.appendChild(title);
+  head.appendChild(close);
+
+  const note = document.createElement('p');
+  note.textContent = 'This is the exact tree currently saved in this browser. Long-press inside the box, Select All, then Copy.';
+
+  const area = document.createElement('textarea');
+  area.id = 'backupText';
+  area.setAttribute('rows', '18');
+  area.setAttribute('readonly', '');
+
+  const select = document.createElement('button');
+  select.type = 'button';
+  select.textContent = 'Select all JSON';
+  select.addEventListener('click', () => {
+    area.focus();
+    area.select();
+    area.setSelectionRange(0, area.value.length);
+  });
+
+  panel.appendChild(head);
+  panel.appendChild(note);
+  panel.appendChild(area);
+  panel.appendChild(select);
+  document.body.appendChild(panel);
+  return panel;
+}
+
+function showBackupJson() {
+  const panel = ensureBackupPanel();
+  const saved = localStorage.getItem(STORAGE_KEY);
+  const value = saved || JSON.stringify(root);
+  let pretty = value;
+  try { pretty = JSON.stringify(JSON.parse(value), null, 2); } catch (error) {}
+  document.getElementById('backupText').value = pretty;
+  panel.hidden = false;
+}
+
 let editingId = null;
 function openEditor(id) {
   ensureEditor();
+const syncButton = document.getElementById('syncShared');
+if (syncButton) syncButton.addEventListener('click', connectShared);
   const found = findNode(id);
   if (!found) return;
   editingId = id;
@@ -206,6 +327,7 @@ document.getElementById('editorAdd').addEventListener('click', addChild);
 document.getElementById('editorDelete').addEventListener('click', deleteNode);
 document.getElementById('editMode').addEventListener('click', () => { editMode = !editMode; render(); if (!editMode) document.getElementById('editorPanel').hidden = true; });
 document.getElementById('exportData').addEventListener('click', exportJson);
+document.getElementById('showBackup').addEventListener('click', showBackupJson);
 document.getElementById('resetEdits').addEventListener('click', resetEdits);
 document.getElementById('expand').addEventListener('click', () => { collapsed.clear(); render(); });
 document.getElementById('collapse').addEventListener('click', () => {
@@ -218,3 +340,4 @@ document.getElementById('reset').addEventListener('click', () => { collapsed.cle
 
 render();
 setZoom(0.9);
+fetchShared().catch(() => {});
