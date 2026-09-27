@@ -79,9 +79,8 @@ async function connectShared() {
   try {
     const exists = await fetchShared();
     if (!exists) {
-      if (!confirm('No shared tree exists yet. Upload THIS browser\'s current tree as the shared starting version?')) return;
-      root = loadTree();
-      await syncShared();
+      alert('Shared SQL tree is not seeded yet. Run npm run db:seed on the Mac mini, then retry.');
+      return;
     }
     sharedReady = true;
     render();
