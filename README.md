@@ -18,7 +18,7 @@ Seed: `scripts/seed.mjs`
 
 ## Mac mini / Vercel setup
 
-1. Checkout `agent/family-tree-initial`.
+1. Checkout/pull `main`.
 2. Run `npm install`.
 3. Create/link a Vercel project.
 4. Provision Neon Postgres from Vercel Marketplace.
