@@ -1,32 +1,35 @@
 # family-tree
 
-Shared, editable family tree.
+Shared, editable family tree with Postgres persistence.
 
-## Current data safety
+## Canonical seed
 
-The browser editor still keeps every edit in `localStorage` under `family-tree-draft-v1`. The persistence work does not delete or rename that key.
+`data/family-tree-seed.json` is the exported tree supplied by Akshat and is the initial database source of truth. It includes the browser edits already captured in that export, including Neelam + Ashish Kumar Dixit -> Amiya and Avika.
 
-## Vercel shared persistence
+## Database
 
-This branch includes `/api/tree`, backed by Upstash Redis.
+The app stores the current complete tree as JSONB in one Postgres row. This keeps the existing nested tree model intact while making it centrally persistent.
 
-On the Mac mini:
+Schema: `db/schema.sql`
 
-1. Check out `agent/family-tree-initial`.
-2. Import/deploy this repository in Vercel.
-3. In the Vercel Marketplace, add **Upstash Redis** to the project. Vercel should inject `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`.
-4. Add an `EDIT_PIN` environment variable in Vercel. Do not commit the PIN.
-5. Redeploy.
-6. Open the Vercel-hosted `/full.html`.
-7. Click **Connect shared**, enter the PIN.
-8. If the API says the shared tree is not initialized, do this first from the browser that contains the latest local edits. Confirm the upload when prompted.
+API: `api/tree.js`
 
-After initialization, visitors load the shared tree. An editor who connects with the PIN saves changes both locally and to the shared Redis tree.
+Seed: `scripts/seed.mjs`
 
-### Important migration rule
+## Mac mini / Vercel setup
 
-Do not click **Discard local edits** in the ChatGPT browser until its current draft has either been exported or uploaded as the first shared tree.
+1. Checkout `agent/family-tree-initial`.
+2. Run `npm install`.
+3. Create/link a Vercel project.
+4. Provision Neon Postgres from Vercel Marketplace.
+5. Pull/set `DATABASE_URL` locally.
+6. Run `npm run db:seed`. This creates the table if needed and UPSERTs `data/family-tree-seed.json` into `family_tree.id = 1`.
+7. Set `EDIT_PIN` in Vercel. Never commit the PIN.
+8. Deploy/redeploy.
+9. Open `/full.html`. The frontend GETs the canonical tree from SQL. Editors use **Connect shared** and the PIN; edits PUT back to SQL.
 
-### GitHub Pages
+## Local safety
 
-GitHub Pages has no server-side API. The easiest production setup is to use the Vercel-hosted site. If GitHub Pages must remain the frontend, set `window.FAMILY_TREE_API_BASE` to the Vercel deployment URL and set `ALLOWED_ORIGIN=https://sri-akshat.github.io` in Vercel.
+The editor still writes `family-tree-draft-v1` in localStorage as a local backup. SQL is the shared source after deployment.
+
+For a GitHub Pages frontend pointing at a Vercel API, set `window.FAMILY_TREE_API_BASE` to the Vercel deployment URL and set `ALLOWED_ORIGIN=https://sri-akshat.github.io` in Vercel.
