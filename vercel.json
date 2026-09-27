@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/tree.js": {
+      "maxDuration": 10
+    }
+  }
+}
