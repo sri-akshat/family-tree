@@ -26,10 +26,26 @@ Seed: `scripts/seed.mjs`
 6. Run `npm run db:seed`. This creates the table if needed and UPSERTs `data/family-tree-seed.json` into `family_tree.id = 1`.
 7. Set `EDIT_PIN` in Vercel. Never commit the PIN.
 8. Deploy/redeploy.
-9. Open `/full.html`. The frontend GETs the canonical tree from SQL. Editors use **Connect shared** and the PIN; edits PUT back to SQL.
+9. Open `/public/full.html`. The frontend in `public/` GETs the canonical tree from SQL. Editors use **Connect shared** and the PIN; edits PUT back to SQL.
 
 ## Local safety
 
 The editor still writes `family-tree-draft-v1` in localStorage as a local backup. SQL is the shared source after deployment.
 
 For a GitHub Pages frontend pointing at a Vercel API, set `window.FAMILY_TREE_API_BASE` to the Vercel deployment URL and set `ALLOWED_ORIGIN=https://sri-akshat.github.io` in Vercel.
+
+
+## Repository layout
+
+```
+api/                  Vercel serverless API
+data/                 Canonical SQL seed JSON
+db/                   Database schema
+scripts/              Database/setup scripts
+public/                Static web application
+  assets/              Frontend JS and CSS
+  data/                Browser fallback tree snapshot
+index.html             Thin redirect for GitHub Pages
+package.json           Runtime dependencies/scripts
+vercel.json            Vercel configuration
+```
