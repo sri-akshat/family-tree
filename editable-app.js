@@ -1,5 +1,8 @@
 const STORAGE_KEY = 'family-tree-draft-v1';
 const BASE_TREE = window.VERIFIED_TREE;
+const API_BASE = window.FAMILY_TREE_API_BASE || (location.hostname.endsWith('.vercel.app') ? location.origin : '');
+let editPin = sessionStorage.getItem('family-tree-edit-pin') || '';
+let sharedReady = false;
 let root = loadTree();
 let editMode = false;
 let zoom = 0.9;
@@ -23,7 +26,69 @@ function loadTree() {
 function persist() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(root));
   const status = document.getElementById('editStatus');
-  if (status) status.textContent = 'Saved locally';
+  if (status) status.textContent = sharedReady ? 'Saved locally · syncing…' : 'Saved locally';
+  if (sharedReady && editPin) syncShared().catch(() => {
+    if (status) status.textContent = 'Saved locally · shared sync failed';
+  });
+}
+
+async function fetchShared() {
+  if (!API_BASE) return false;
+  const response = await fetch(API_BASE + '/api/tree', { cache: 'no-store' });
+  if (response.status === 404) return false;
+  if (!response.ok) throw new Error('Shared tree load failed');
+  const data = await response.json();
+  if (!data.tree) return false;
+  root = data.tree;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(root));
+  sharedReady = true;
+  render();
+  return true;
+}
+
+async function syncShared() {
+  if (!API_BASE || !editPin) return false;
+  const response = await fetch(API_BASE + '/api/tree', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + editPin },
+    body: JSON.stringify({ tree: root })
+  });
+  if (response.status === 401) {
+    editPin = '';
+    sessionStorage.removeItem('family-tree-edit-pin');
+    sharedReady = false;
+    throw new Error('Invalid edit PIN');
+  }
+  if (!response.ok) throw new Error('Shared save failed');
+  sharedReady = true;
+  const status = document.getElementById('editStatus');
+  if (status) status.textContent = 'Saved to shared tree';
+  return true;
+}
+
+async function connectShared() {
+  if (!API_BASE) {
+    alert('Shared API is not configured on this host yet. Deploy this repo to Vercel first.');
+    return;
+  }
+  const pin = prompt('Enter family edit PIN');
+  if (!pin) return;
+  editPin = pin;
+  sessionStorage.setItem('family-tree-edit-pin', pin);
+
+  try {
+    const exists = await fetchShared();
+    if (!exists) {
+      if (!confirm('No shared tree exists yet. Upload THIS browser\'s current tree as the shared starting version?')) return;
+      root = loadTree();
+      await syncShared();
+    }
+    sharedReady = true;
+    render();
+    alert('Connected to shared family tree.');
+  } catch (error) {
+    alert(error.message || 'Could not connect to shared tree');
+  }
 }
 
 function findNode(id, item = root, parent = null) {
@@ -187,6 +252,8 @@ function showBackupJson() {
 let editingId = null;
 function openEditor(id) {
   ensureEditor();
+const syncButton = document.getElementById('syncShared');
+if (syncButton) syncButton.addEventListener('click', connectShared);
   const found = findNode(id);
   if (!found) return;
   editingId = id;
@@ -273,3 +340,4 @@ document.getElementById('reset').addEventListener('click', () => { collapsed.cle
 
 render();
 setZoom(0.9);
+fetchShared().catch(() => {});
